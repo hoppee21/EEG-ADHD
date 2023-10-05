@@ -1,13 +1,12 @@
-import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import torch.optim as optim
-from torch.utils.data import DataLoader
 import pytorch_lightning as pl
 
 class EEGNet_encoder(pl.LightningModule):
     
     def __init__(self, Chans=56, Samples=385, kernLength=256, dropoutRate=0.25, F1=4, D=2, F2=8, norm_rate=0.25):
-        super(Encoder, self).__init__()
+        super(EEGNet_encoder, self).__init__()
 
         self.conv1 = nn.Conv2d(1, F1, kernel_size=(1, kernLength), padding=(0, kernLength//2), bias=False)
         self.batchnorm1 = nn.BatchNorm2d(F1)
@@ -30,3 +29,36 @@ class EEGNet_encoder(pl.LightningModule):
 
         self.flatten = nn.Flatten()
     
+    def forward(self, x):
+        x = self.conv1(x)
+        x = self.batchnorm1(x)
+        x = self.depthwise_conv(x)
+        x = self.batchnorm2(x)
+        x = self.elu(x)
+        x = self.avgpool1(x)
+        x = self.dropout1(x)
+
+        x = self.sep_conv(x)
+        x = self.batchnorm3(x)
+        x = self.elu2(x)
+        x = self.avgpool2(x)
+        x = self.dropout2(x)
+
+        x = self.depthwise_conv2(x)
+        x = self.batchnorm4(x)
+        x = self.elu3(x)
+        x = self.avgpool3(x)
+
+        x = self.flatten(x)
+
+        return x
+    
+    def training_step(self, batch, batch_idx):
+        x, y = batch
+        y_hat = self(x)
+        loss = F.mse_loss(y_hat, y)
+        return loss
+
+    def configure_optimizers(self):
+        optimizer = optim.Adam(self.parameters(), lr=1e-3)
+        return optimizer
