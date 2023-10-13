@@ -92,6 +92,7 @@ def process_dataset(X, Y, label):
     return x, y_b, yt, yid
 
 def _transform_data(root_dir):
+    
     read_dir = os.path.join(root_dir, 'origin')
     write_dir = os.path.join(root_dir, 'dataset')
     if not os.path.isdir(write_dir):
@@ -99,8 +100,28 @@ def _transform_data(root_dir):
 
     x, y, child_label = get_dataset(read_dir)
     dataset, binary_label, Triple_label, id_label = process_dataset(x, y, child_label)
-    np.save("binary_label.npy", binary_label.astype(np.float32))
-    np.save("triple_label.npy", Triple_label.astype(np.float32))
-    np.save("id_label.npy", id_label.astype(np.float32))
+
+    #save training data
+    train_write_dir = os.path.join(write_dir, 'train')
+    if not os.path.isdir(train_write_dir):
+        os.makedirs(train_write_dir)
+
+    cout = 0
+    for i in range(144):
+        for data in dataset[i]:
+            save_path = os.path.join(train_write_dir, str(i))
+            np.save(save_path + str(cout) + '.npy', data.astype(np.float32))
+            cout+=1
+        cout = 0
+
+
+    # save different training label
+    label_write_dir = os.path.join(write_dir,'label')
+    if not os.path.isdir(label_write_dir):
+        os.makedirs(label_write_dir)
+
+    np.save(label_write_dir + "binary_label.npy", binary_label.astype(np.float32))
+    np.save(label_write_dir + "triple_label.npy", Triple_label.astype(np.float32))
+    np.save(label_write_dir + "id_label.npy", id_label.astype(np.float32))
 
     
