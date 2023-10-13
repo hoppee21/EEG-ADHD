@@ -1,6 +1,7 @@
 import numpy as np
 import os
 import h5py
+from tqdm import tqdm
 
 
 def read_file(dataFile, fileName):
@@ -18,6 +19,7 @@ def read_file(dataFile, fileName):
     data = h5py.File(dataFile, 'r')[fileName][()]
     return np.array(data)
 
+
 def get_dataset(filePath):
     """
     Get the dataset from the file path
@@ -31,17 +33,17 @@ def get_dataset(filePath):
 
     dataFile = ['d1', 'd2', 'd3', 'd4', 'd5', 'd6', 'd7']
     labelFile = 'y_stim'
-    data = read_file(filePath + 'd1' + '.mat', 'd1')
-    for i in range(1, len(dataFile)):
-        d = read_file(filePath + dataFile[i] + '.mat', dataFile[i])
+    data = read_file(filePath + '/d1' + '.mat', 'd1')
+    for i in tqdm(range(1, len(dataFile)), desc= 'Reading', unit= 'file'):
+        d = read_file(os.path.join(filePath ,dataFile[i] + '.mat'), dataFile[i])
         data = np.concatenate((data, d), axis=2)
-    label = read_file(filePath + labelFile + '.mat', labelFile)
+    label = read_file(os.path.join(filePath ,labelFile + '.mat'), labelFile)
     x = data.transpose((2, 1, 0))
     label = label.transpose((1, 0))
     y = label[:, 1:]
     child_label = label[:, 0]
-    print(type(x))
     return x, y, child_label
+
 
 def process_dataset(X, Y, label):
     """
@@ -62,7 +64,7 @@ def process_dataset(X, Y, label):
     yid = []
     hc = []
 
-    for i in range(33902):
+    for i in tqdm(range(33902), desc= 'Date processing', unit='trial'):
         if np.argmax(Y[i]) == 0:
             if label[i] not in yid:
                 if len(hc) != 0:
@@ -99,8 +101,8 @@ def process_dataset(X, Y, label):
     y_b = np.array(y_b)
     yt = np.array(yt)
     yid = np.array(yid)
-    print(np.shape(x), np.shape(y_b), np.shape(yt), np.shape(yid))
     return x, y_b, yt, yid
+
 
 def _transform_data(root_dir):
     """
@@ -131,10 +133,13 @@ def _transform_data(root_dir):
         os.makedirs(train_write_dir)
 
     cout = 0
-    for i in range(144):
+    for i in tqdm(range(144), desc='Writing', unit= 'child'):
+        save_path = os.path.join(train_write_dir, str(i))
+        if not os.path.isdir(save_path):
+                os.makedirs(save_path)
         for data in dataset[i]:
-            save_path = os.path.join(train_write_dir, str(i))
-            np.save(save_path + str(cout) + '.npy', data.astype(np.float32))
+            file_path = os.path.join(save_path ,str(cout) + '.npy')
+            np.save(file_path, data.astype(np.float32))
             cout+=1
         cout = 0
 
@@ -143,10 +148,12 @@ def _transform_data(root_dir):
     label_write_dir = os.path.join(write_dir,'label')
     if not os.path.isdir(label_write_dir):
         os.makedirs(label_write_dir)
-
-    np.save(label_write_dir + "binary_label.npy", binary_label.astype(np.float32))
-    np.save(label_write_dir + "triple_label.npy", Triple_label.astype(np.float32))
-    np.save(label_write_dir + "id_label.npy", id_label.astype(np.float32))
+    binary_label_path = os.path.join(label_write_dir, "binary_label.npy")
+    Triple_label_path = os.path.join(label_write_dir, "triple_label.npy")
+    id_label_path = os.path.join(label_write_dir, "id_label.npy")
+    np.save(binary_label_path, binary_label.astype(np.float32))
+    np.save(Triple_label_path, Triple_label.astype(np.float32))
+    np.save(id_label_path, id_label.astype(np.float32))
 
     
     

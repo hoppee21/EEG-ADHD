@@ -2,6 +2,7 @@ import numpy as np
 import os
 import time
 import yaml
+import argparse
 from utils import _transform_data
 
 def main(args):
@@ -17,3 +18,13 @@ def main(args):
 
     print('start transform data')
     _transform_data(root_dir)
+
+    current_time = time.time()
+    print('time: ' + str(current_time - old_time) + 's')
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Evaluate our model')
+    parser.add_argument('--config', type=str, metavar='DIR',
+                        help='path to a config file')
+    args = parser.parse_args()
+    main(args)
