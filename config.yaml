@@ -1,0 +1,13 @@
+dataset: {
+  dataset_root_dir: 'EEG-ADHD/data'
+}
+ResNet_50: {
+  Chans: 56, 
+  Samples: 385, 
+  kernLength: 256, 
+  dropoutRate: 0.25, 
+  F1: 4, 
+  D: 2, 
+  F2: 8, 
+  norm_rate: 0.25
+}

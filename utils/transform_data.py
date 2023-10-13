@@ -6,9 +6,12 @@ import h5py
 def read_file(dataFile, fileName):
     """
     Read the data from the file path
-    :param dataFile: the file path
-    :param fileName: the name of the file
-    :return: the data
+    Args:
+        dataFile: the file path
+        fileName: the name of the file
+
+    Returns: 
+        the data
     """
     with h5py.File(dataFile, 'r') as f:
         f.keys()
@@ -18,8 +21,12 @@ def read_file(dataFile, fileName):
 def get_dataset(filePath):
     """
     Get the dataset from the file path
-    :param filePath: the file path
-    :return: the dataset
+
+    Args: 
+        filePath: the file path
+
+    Returns:  
+        the dataset
     """
 
     dataFile = ['d1', 'd2', 'd3', 'd4', 'd5', 'd6', 'd7']
@@ -39,10 +46,14 @@ def get_dataset(filePath):
 def process_dataset(X, Y, label):
     """
     Process the dataset
-    :param X: the dataset
-    :param Y: the labels
-    :param label: the child labels
-    :return: the processed dataset
+
+    Args:
+        X: the dataset
+        Y: the labels
+        label: the child labels
+
+    Returns: 
+        the processed dataset
     """
 
     x = []
@@ -92,7 +103,20 @@ def process_dataset(X, Y, label):
     return x, y_b, yt, yid
 
 def _transform_data(root_dir):
+    """
+    Transforms the input data and saves the transformed data to disk.
     
+    Args:
+        root_dir (str): The root directory containing the input data.
+
+    Returns:
+        None
+
+    Raises:
+        FileNotFoundError: If the input data directory is not found.
+
+    """
+
     read_dir = os.path.join(root_dir, 'origin')
     write_dir = os.path.join(root_dir, 'dataset')
     if not os.path.isdir(write_dir):
@@ -124,4 +148,5 @@ def _transform_data(root_dir):
     np.save(label_write_dir + "triple_label.npy", Triple_label.astype(np.float32))
     np.save(label_write_dir + "id_label.npy", id_label.astype(np.float32))
 
+    
     
