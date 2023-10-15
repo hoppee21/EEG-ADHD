@@ -1,12 +1,15 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 import torch.optim as optim
+import torch.nn.functional as F
 import pytorch_lightning as pl
+from torch.utils.data import DataLoader, Subset
+from pytorch_metric_learning import losses
+# from Loss_function import MaxMarginContrastiveLoss
 
 class EEGNet_encoder(pl.LightningModule):
     
-    def __init__(self, Chans=56, Samples=385, kernLength=256, dropoutRate=0.25, F1=4, D=2, F2=8, norm_rate=0.25):
+    def __init__(self, Chans=56, Samples=385, kernLength=256, dropoutRate=0.25, F1=4, D=2, F2=8, norm_rate=0.25, nb_classes=2):
         super(EEGNet_encoder, self).__init__()
 
         self.conv1 = nn.Conv2d(1, F1, kernel_size=(1, kernLength), padding=(0, kernLength//2), bias=False)
@@ -30,7 +33,11 @@ class EEGNet_encoder(pl.LightningModule):
 
         self.flatten = nn.Flatten()
 
-        self.loss_function = MaxMarginContrastiveLoss(margin=(1.0, 3.0))
+        # Fully connected layer
+        self.fc = nn.utils.weight_norm(nn.Linear(F1 * Samples * 8, nb_classes))
+
+        # self.loss_function = MaxMarginContrastiveLoss(margin=(1.0, 3.0))
+        self.loss_function = losses.SupConLoss(temperature=0.01)
     
     def forward(self, x):
         x = self.conv1(x)
@@ -54,6 +61,12 @@ class EEGNet_encoder(pl.LightningModule):
 
         x = self.flatten(x)
 
+        # Fully connected layer with weight normalization
+        x = self.fc(x)
+
+        # Softmax activation
+        x = F.softmax(x, dim=1)
+
         return x
     
     def training_step(self, batch, batch_idx):
@@ -66,43 +79,35 @@ class EEGNet_encoder(pl.LightningModule):
         
         return loss
 
+    def validation_step(self, val_batch, batch_idx):
+        # Split validation data into K folds
+        k_folds = 10
+        fold_size = len(val_batch) // k_folds
+        fold_losses = []
+
+        for fold in range(k_folds):
+            start_idx = fold * fold_size
+            end_idx = (fold + 1) * fold_size
+            val_fold = Subset(val_batch, range(start_idx, end_idx))
+
+            # Forward pass
+            x, y = zip(*val_fold)
+            x = torch.stack(x)
+            y = torch.stack(y)
+            y_hat = self(x)
+
+            # Calculate loss for the fold
+            fold_loss = self.loss_function(y, y_hat)
+            fold_losses.append(fold_loss.item())
+
+        # Calculate the average loss across folds
+        avg_loss = sum(fold_losses) / k_folds
+
+        # Log the average loss for visualization in TensorBoard
+        self.log('val_loss', avg_loss, prog_bar=True, logger=True)
+
+        return avg_loss
+
     def configure_optimizers(self):
         optimizer = optim.Adam(self.parameters(), lr=1e-3)
         return optimizer
-    
-
-class MaxMarginContrastiveLoss(nn.Module):
-    def __init__(self, margin):
-        super(MaxMarginContrastiveLoss, self).__init__()
-        self.margin_id = margin[0]
-        self.margin_type = margin[1]
-
-    def forward(self, y, z):
-        labels_id = y[:, 0]
-        labels_type = y[:, 1]
-
-        # Compute pair-wise distance matrix
-        D = pdist_euclidean(z)
-        d_vec = D.view(-1, 1)
-
-        # Make contrastive labels
-        yid_contrasts = get_contrast_batch_labels(labels_id)
-        ytype_contrasts = get_contrast_batch_labels(labels_type)
-
-        loss = F.margin_ranking_loss(d_vec, yid_contrasts, margin=self.margin_id) + \
-               F.margin_ranking_loss(d_vec, ytype_contrasts, margin=self.margin_type)
-
-        return torch.mean(loss)
-
-def pdist_euclidean(A):
-    r = torch.sum(A*A, dim=1)
-    r = r.view(-1, 1)
-    D = r - 2*torch.matmul(A, torch.transpose(A, 0, 1)) + torch.transpose(r, 0, 1)
-    return torch.sqrt(D)
-
-def get_contrast_batch_labels(y):
-    y_col_vec = y.view(-1, 1).float()
-    D_y = pdist_euclidean(y_col_vec)
-    d_y = D_y.view(-1, 1)
-    y_contrasts = (d_y == 0).int()
-    return y_contrasts
