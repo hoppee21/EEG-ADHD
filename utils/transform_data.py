@@ -151,9 +151,9 @@ def _transform_data(root_dir):
     binary_label_path = os.path.join(label_write_dir, "binary_label.npy")
     Triple_label_path = os.path.join(label_write_dir, "triple_label.npy")
     id_label_path = os.path.join(label_write_dir, "id_label.npy")
-    np.save(binary_label_path, binary_label.astype(np.float32))
-    np.save(Triple_label_path, Triple_label.astype(np.float32))
-    np.save(id_label_path, id_label.astype(np.float32))
+    np.save(binary_label_path, binary_label.astype(np.int32))
+    np.save(Triple_label_path, Triple_label.astype(np.int32))
+    np.save(id_label_path, id_label.astype(np.int32))
 
     
     
