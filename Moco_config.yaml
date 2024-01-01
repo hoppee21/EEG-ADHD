@@ -1,0 +1,12 @@
+dataset: {
+  dataset_root_dir: '/home/yinhuiwang/EEG/data',
+  train_data_path: 'dataset/train',
+  train_label_path: 'dataset/label/triple_label.npy',
+}
+trainer: {
+  max_epochs: 70,
+  auto_lr_find: False,
+  accelerator: 'gpu',
+  devices: 2
+}
+save_ckpt_path: 'Moco_weights.pth'
